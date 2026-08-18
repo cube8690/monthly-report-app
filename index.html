@@ -20,6 +20,7 @@
             --error-bg: #450a0a;
             --today-border: #38bdf8;
             --today-bg: rgba(56, 189, 248, 0.15);
+            --drag-bg: rgba(56, 189, 248, 0.3);
         }
 
         * {
@@ -27,13 +28,14 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none; /* Prevents text selection during drag */
         }
 
         body {
             background-color: var(--bg-main);
             color: var(--text-main);
             padding: 15px;
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -50,6 +52,30 @@
             letter-spacing: 0.5px;
         }
 
+        .view-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn-tab {
+            background: #1e293b;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-tab.active {
+            background: var(--primary-color);
+            color: #0f172a;
+            border-color: var(--primary-color);
+        }
+
         .screen {
             display: none;
             background: var(--card-bg);
@@ -63,7 +89,7 @@
             display: block;
         }
 
-        /* Calendar Screen Header */
+        /* Nav Header */
         .calendar-header {
             display: flex;
             justify-content: space-between;
@@ -72,7 +98,7 @@
         }
 
         .calendar-header h2 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: var(--text-main);
         }
 
@@ -92,7 +118,7 @@
             color: #fff;
         }
 
-        /* Fixed Calendar Grid Layout (Prevents misalignment) */
+        /* Month View Grid */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -125,7 +151,6 @@
             justify-content: space-between;
             align-items: center;
             background: #182232;
-            position: relative;
         }
 
         .day-cell:hover {
@@ -149,24 +174,12 @@
         .day-cell.sun .day-num { color: #f87171; }
         .day-cell.sat .day-num { color: #60a5fa; }
 
-        /* Today Highlight */
         .day-cell.today {
             border: 2px solid var(--today-border);
             background: var(--today-bg);
             box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
         }
 
-        .day-cell.today .day-num::after {
-            content: 'TODAY';
-            display: block;
-            font-size: 0.55rem;
-            color: var(--primary-color);
-            text-align: center;
-            line-height: 1;
-            margin-top: 2px;
-        }
-
-        /* Record Marker in Calendar */
         .record-badge {
             display: flex;
             align-items: center;
@@ -189,6 +202,76 @@
             display: inline-block;
         }
 
+        /* Week Time Grid View (Google Calendar Style with Dragging) */
+        .week-container {
+            overflow-x: auto;
+            max-height: 600px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #141e2e;
+        }
+
+        .week-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 600px;
+        }
+
+        .week-table th, .week-table td {
+            border: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .week-table th {
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+            padding: 8px 4px;
+            z-index: 2;
+        }
+
+        .week-time-col {
+            width: 60px;
+            color: var(--text-muted);
+            background: #0f172a !important;
+            font-weight: normal;
+        }
+
+        .week-slot {
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+            vertical-align: top;
+            padding: 1px;
+        }
+
+        .week-slot.selecting {
+            background-color: var(--drag-bg) !important;
+            border: 1px dashed var(--primary-color);
+        }
+
+        .week-slot:hover {
+            background-color: rgba(56, 189, 248, 0.05);
+        }
+
+        .week-block {
+            color: #0f172a;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
         /* Input Screen Header */
         .input-header {
             display: flex;
@@ -201,8 +284,8 @@
 
         .chart-container {
             position: relative;
-            width: 250px;
-            height: 250px;
+            width: 280px;
+            height: 280px;
             margin: 0 auto 20px auto;
         }
 
@@ -219,7 +302,6 @@
             font-weight: bold;
         }
 
-        /* Record Cards */
         .records-container {
             display: flex;
             flex-direction: column;
@@ -358,24 +440,6 @@
         .btn-submit:hover {
             background-color: #059669;
         }
-
-        .gas-config {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .gas-config input {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -384,70 +448,78 @@
         <h1>Monthly Work Log System</h1>
     </header>
 
-    <!-- Screen 1: Calendar View -->
-    <div id="screen-calendar" class="screen active">
+    <!-- View Switcher Tabs -->
+    <div class="view-switcher">
+        <button id="tab-month" class="btn-tab active" onclick="switchMainView('month')">Month View</button>
+        <button id="tab-week" class="btn-tab" onclick="switchMainView('week')">Week View</button>
+    </div>
+
+    <!-- Screen 1: Month Calendar View -->
+    <div id="screen-month" class="screen active">
         <div class="calendar-header">
             <button class="btn-nav" onclick="changeMonth(-1)">◀ Prev</button>
             <h2 id="calendar-month-title">August 2026</h2>
             <button class="btn-nav" onclick="changeMonth(1)">Next ▶</button>
         </div>
-
-        <!-- Single Grid Container for Headers & Day Cells -->
         <div id="calendar-grid" class="calendar-grid"></div>
     </div>
 
-    <!-- Screen 2: Input & Edit View -->
+    <!-- Screen 2: Week Timetable View -->
+    <div id="screen-week" class="screen">
+        <div class="calendar-header">
+            <button class="btn-nav" onclick="changeWeek(-1)">◀ Prev Week</button>
+            <h2 id="calendar-week-title">Week View</h2>
+            <button class="btn-nav" onclick="changeWeek(1)">Next Week ▶</button>
+        </div>
+        <div class="week-container">
+            <table class="week-table">
+                <thead>
+                    <tr id="week-header-row">
+                        <th class="week-time-col">Time</th>
+                    </tr>
+                </thead>
+                <tbody id="week-table-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Screen 3: Input & Edit View -->
     <div id="screen-input" class="screen">
         <div class="input-header">
-            <button class="btn-nav" onclick="showCalendarScreen()">◀ Calendar</button>
+            <button class="btn-nav" onclick="backToMainView()">◀ Back to Calendar</button>
             <h2 id="selected-date-display">2026-08-14</h2>
             <div></div>
         </div>
 
-        <!-- 24h Donut Chart -->
         <div class="chart-container">
             <canvas id="timeChart"></canvas>
         </div>
 
-        <!-- Time Overlap Alert -->
         <div id="overlap-warning" class="overlap-warning">
             ⚠️ Warning: Time slots are overlapping! Please check your records.
         </div>
 
-        <!-- Record List -->
         <div id="records-container" class="records-container"></div>
-
-        <!-- Add Button -->
         <button class="btn-add-record" onclick="addRecord()">+ Add Work Record</button>
-
-        <!-- Submit Button -->
         <button class="btn-submit" onclick="submitData()">Save & Submit to Sheet</button>
-
-        <!-- Webhook Config -->
-        <div class="gas-config">
-            <details>
-                <summary>⚙️ Settings: GAS Web App URL</summary>
-                <label style="margin-top:8px; display:block;">GAS Web App URL (exec):</label>
-                <input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveGasUrl()">
-            </details>
-        </div>
     </div>
 
     <script>
-        const COLOR_PALETTE = [
-            '#38bdf8', '#34d399', '#fbbf24', '#f87171', '#c084fc',
-            '#2dd4bf', '#fb923c', '#a78bfa', '#f472b6', '#4ade80'
-        ];
-        const OVERLAP_COLOR = '#ef4444';
+        // ★★★ 下記の引用符内をご自身のGASのWeb App URLに変更してください ★★★
+        const GAS_URL = "https://script.google.com/macros/s/YOUR_EXEC_URL/exec";
 
-        // English Department List
-        const DEPARTMENTS = [
-            'Real Estate',
-            'Group Home',
-            'Creative',
-            'Cleaning',
-            'General Admin'
-        ];
+        // Category / Department Specific Fixed Colors
+        const DEPT_COLORS = {
+            'Real Estate': '#38bdf8',   // Light Blue
+            'Group Home': '#34d399',    // Green
+            'Creative': '#fbbf24',      // Yellow
+            'Cleaning': '#fb923c',      // Orange
+            'General Admin': '#c084fc'  // Purple
+        };
+
+        const DEPARTMENTS = Object.keys(DEPT_COLORS);
+        const OVERLAP_COLOR = '#ef4444';
 
         const MONTH_NAMES = [
             "January", "February", "March", "April", "May", "June",
@@ -455,54 +527,80 @@
         ];
 
         let currentYear = 2026;
-        let currentMonth = 7; // 0-indexed (7 = August)
+        let currentMonth = 7;
+        let currentWeekStartDate = new Date();
+        let activeView = 'month';
+
         let selectedDateStr = '';
         let records = [];
         let timeChart = null;
-        let monthlyData = {}; // Cache for existing records from GAS { "2026-08-14": [records] }
+        let monthlyData = {};
+
+        // Drag Selection State for Week View
+        let isDragging = false;
+        let dragColIndex = null;
+        let dragStartHour = null;
+        let dragEndHour = null;
 
         window.onload = () => {
             const today = new Date();
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
+
+            currentWeekStartDate = new Date(today);
+            currentWeekStartDate.setDate(today.getDate() - today.getDay());
+
             initChart();
-
-            const savedUrl = localStorage.getItem('gas_app_url');
-            if(savedUrl) {
-                document.getElementById('gas-url').value = savedUrl;
-            }
-
             fetchMonthlyData();
+
+            // Clear drag selection if mouse released outside grid
+            document.addEventListener('mouseup', handleGlobalMouseUp);
         };
 
-        function saveGasUrl() {
-            const url = document.getElementById('gas-url').value.trim();
-            localStorage.setItem('gas_app_url', url);
-            fetchMonthlyData();
+        function switchMainView(view) {
+            activeView = view;
+            document.getElementById('tab-month').classList.toggle('active', view === 'month');
+            document.getElementById('tab-week').classList.toggle('active', view === 'week');
+
+            document.getElementById('screen-input').classList.remove('active');
+
+            if (view === 'month') {
+                document.getElementById('screen-week').classList.remove('active');
+                document.getElementById('screen-month').classList.add('active');
+                renderCalendar();
+            } else {
+                document.getElementById('screen-month').classList.remove('active');
+                document.getElementById('screen-week').classList.add('active');
+                renderWeekGrid();
+            }
         }
 
-        /* ----- Fetch Existing Data from GAS (Re-edit Support) ----- */
+        function backToMainView() {
+            switchMainView(activeView);
+        }
+
         function fetchMonthlyData() {
-            const gasUrl = document.getElementById('gas-url').value.trim();
-            if (!gasUrl) {
+            if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
                 renderCalendar();
+                renderWeekGrid();
                 return;
             }
 
-            // Fetch registered data from GAS
-            fetch(`${gasUrl}?action=getRecords&year=${currentYear}&month=${currentMonth + 1}`)
+            fetch(`${GAS_URL}?action=getRecords&year=${currentYear}&month=${currentMonth + 1}`)
                 .then(res => res.json())
                 .then(data => {
                     monthlyData = data || {};
-                    renderCalendar();
+                    if (activeView === 'month') renderCalendar();
+                    else renderWeekGrid();
                 })
                 .catch(err => {
-                    console.log('Fetching existing records failed or offline:', err);
-                    renderCalendar();
+                    console.log('Fetching records failed or offline:', err);
+                    if (activeView === 'month') renderCalendar();
+                    else renderWeekGrid();
                 });
         }
 
-        /* ----- Calendar Render (Grid Alignment Fixed) ----- */
+        /* ----- Month Calendar View ----- */
         function changeMonth(diff) {
             currentMonth += diff;
             if (currentMonth < 0) {
@@ -520,7 +618,6 @@
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
 
-            // 1. Render Weekday Headers
             const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             weekdays.forEach((day, idx) => {
                 const header = document.createElement('div');
@@ -531,7 +628,6 @@
                 grid.appendChild(header);
             });
 
-            // 2. Render Blank & Day Cells
             const firstDay = new Date(currentYear, currentMonth, 1);
             const lastDay = new Date(currentYear, currentMonth + 1, 0);
             const startDayOfWeek = firstDay.getDay();
@@ -540,14 +636,12 @@
             const today = new Date();
             const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
 
-            // Empty cells before month start
             for (let i = 0; i < startDayOfWeek; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'day-cell empty';
                 grid.appendChild(emptyCell);
             }
 
-            // Day cells
             for (let day = 1; day <= totalDays; day++) {
                 const cell = document.createElement('div');
                 const dayOfWeekIdx = (startDayOfWeek + day - 1) % 7;
@@ -557,12 +651,10 @@
                 if (dayOfWeekIdx === 0) cell.classList.add('sun');
                 if (dayOfWeekIdx === 6) cell.classList.add('sat');
 
-                // Check Today
                 if (isCurrentMonth && day === today.getDate()) {
                     cell.classList.add('today');
                 }
 
-                // Check if existing records exist
                 const dayRecords = monthlyData[dateStr] || [];
                 let totalHours = 0;
                 dayRecords.forEach(r => totalHours += Number(r.duration || 0));
@@ -587,32 +679,159 @@
             }
         }
 
+        /* ----- Week Timetable Grid View & Dragging Logic ----- */
+        function changeWeek(diff) {
+            currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (diff * 7));
+            currentYear = currentWeekStartDate.getFullYear();
+            currentMonth = currentWeekStartDate.getMonth();
+            fetchMonthlyData();
+        }
+
+        function renderWeekGrid() {
+            const weekEndDate = new Date(currentWeekStartDate);
+            weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+            document.getElementById('calendar-week-title').textContent = 
+                `${currentWeekStartDate.getMonth() + 1}/${currentWeekStartDate.getDate()} - ${weekEndDate.getMonth() + 1}/${weekEndDate.getDate()} (${currentWeekStartDate.getFullYear()})`;
+
+            const headerRow = document.getElementById('week-header-row');
+            headerRow.innerHTML = '<th class="week-time-col">Time</th>';
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(currentWeekStartDate);
+                d.setDate(d.getDate() + i);
+                const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                weekDates.push({ dateStr, dayNum: d.getDate(), dayName: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] });
+
+                const th = document.createElement('th');
+                th.innerHTML = `${d.getMonth() + 1}/${d.getDate()}<br><small>${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]}</small>`;
+                if (d.getDay() === 0) th.style.color = '#f87171';
+                if (d.getDay() === 6) th.style.color = '#60a5fa';
+                headerRow.appendChild(th);
+            }
+
+            const tbody = document.getElementById('week-table-body');
+            tbody.innerHTML = '';
+
+            for (let hour = 0; hour < 24; hour++) {
+                const tr = document.createElement('tr');
+                const timeTd = document.createElement('td');
+                timeTd.className = 'week-time-col';
+                timeTd.textContent = `${String(hour).padStart(2, '0')}:00`;
+                tr.appendChild(timeTd);
+
+                weekDates.forEach((item, colIdx) => {
+                    const td = document.createElement('td');
+                    td.className = 'week-slot';
+                    td.dataset.col = colIdx;
+                    td.dataset.hour = hour;
+                    td.dataset.date = item.dateStr;
+
+                    const dayRecords = monthlyData[item.dateStr] || [];
+
+                    const matchingRecord = dayRecords.find(r => {
+                        const startH = parseInt(r.startTime.split(':')[0], 10);
+                        return startH === hour;
+                    });
+
+                    if (matchingRecord) {
+                        const deptColor = DEPT_COLORS[matchingRecord.dept] || '#38bdf8';
+                        td.innerHTML = `
+                            <div class="week-block" style="background:${deptColor};">
+                                ${matchingRecord.startTime} ${matchingRecord.dept}
+                            </div>
+                        `;
+                    }
+
+                    // Drag Events
+                    td.onmousedown = (e) => startDrag(e, colIdx, hour);
+                    td.onmouseenter = (e) => updateDrag(e, colIdx, hour);
+
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        function startDrag(e, colIdx, hour) {
+            if (e.button !== 0) return; // Only left click
+            isDragging = true;
+            dragColIndex = colIdx;
+            dragStartHour = hour;
+            dragEndHour = hour;
+            highlightDragRange();
+        }
+
+        function updateDrag(e, colIdx, hour) {
+            if (!isDragging || colIdx !== dragColIndex) return;
+            dragEndHour = hour;
+            highlightDragRange();
+        }
+
+        function handleGlobalMouseUp() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const startH = Math.min(dragStartHour, dragEndHour);
+            const endH = Math.max(dragStartHour, dragEndHour);
+            const duration = (endH - startH) + 1;
+            const startStr = `${String(startH).padStart(2, '0')}:00`;
+
+            const selectedTd = document.querySelector(`.week-slot[data-col="${dragColIndex}"]`);
+            if (selectedTd) {
+                const dateStr = selectedTd.dataset.date;
+                const existingRecords = monthlyData[dateStr] || [];
+
+                // Create new record pre-filled with drag selection
+                selectedDateStr = dateStr;
+                records = existingRecords.length > 0 ? JSON.parse(JSON.stringify(existingRecords)) : [];
+
+                addRecord(startStr, duration);
+                selectDate(dateStr, records);
+            }
+
+            clearDragHighlight();
+        }
+
+        function highlightDragRange() {
+            clearDragHighlight();
+            const minH = Math.min(dragStartHour, dragEndHour);
+            const maxH = Math.max(dragStartHour, dragEndHour);
+
+            document.querySelectorAll(`.week-slot[data-col="${dragColIndex}"]`).forEach(td => {
+                const h = parseInt(td.dataset.hour, 10);
+                if (h >= minH && h <= maxH) {
+                    td.classList.add('selecting');
+                }
+            });
+        }
+
+        function clearDragHighlight() {
+            document.querySelectorAll('.week-slot.selecting').forEach(td => td.classList.remove('selecting'));
+        }
+
+        /* ----- Input & Edit View ----- */
         function selectDate(dateStr, existingRecords) {
             selectedDateStr = dateStr;
             document.getElementById('selected-date-display').textContent = `Logs for ${selectedDateStr}`;
 
             records = [];
             if (existingRecords && existingRecords.length > 0) {
-                // Restore existing records for Editing
                 records = JSON.parse(JSON.stringify(existingRecords));
-            } else {
-                // Initial Default Record
+            } else if (records.length === 0) {
                 addRecord('09:00', 1);
             }
 
             renderRecords();
             updateChartAndValidation();
 
-            document.getElementById('screen-calendar').classList.remove('active');
+            document.getElementById('screen-month').classList.remove('active');
+            document.getElementById('screen-week').classList.remove('active');
             document.getElementById('screen-input').classList.add('active');
         }
 
-        function showCalendarScreen() {
-            document.getElementById('screen-input').classList.remove('active');
-            document.getElementById('screen-calendar').classList.add('active');
-        }
-
-        /* ----- Record Management ----- */
         function addRecord(defaultStart = null, defaultDuration = 1) {
             let start = defaultStart;
             if (!start) {
@@ -623,15 +842,15 @@
                 }
             }
 
-            const color = COLOR_PALETTE[records.length % COLOR_PALETTE.length];
+            const defaultDept = DEPARTMENTS[0];
             const newRecord = {
                 id: Date.now() + Math.random(),
                 startTime: start,
                 duration: defaultDuration,
                 endTime: calculateEndTime(start, defaultDuration),
-                dept: DEPARTMENTS[0],
+                dept: defaultDept,
                 memo: '',
-                color: color
+                color: DEPT_COLORS[defaultDept]
             };
 
             records.push(newRecord);
@@ -671,6 +890,10 @@
                 rec.endTime = calculateEndTime(rec.startTime, rec.duration);
             } else if (field === 'dept') {
                 rec.dept = value;
+                rec.color = DEPT_COLORS[value] || '#38bdf8';
+                // Update card accent border
+                const card = document.getElementById(`record-card-${id}`);
+                if (card) card.style.borderLeftColor = rec.color;
             } else if (field === 'memo') {
                 rec.memo = value;
             }
@@ -691,7 +914,9 @@
             records.forEach((rec, idx) => {
                 const card = document.createElement('div');
                 card.className = 'record-card';
-                card.style.borderLeftColor = rec.color || COLOR_PALETTE[idx % COLOR_PALETTE.length];
+                card.id = `record-card-${rec.id}`;
+                rec.color = DEPT_COLORS[rec.dept] || '#38bdf8';
+                card.style.borderLeftColor = rec.color;
 
                 const deptOptions = DEPARTMENTS.map(d => 
                     `<option value="${d}" ${rec.dept === d ? 'selected' : ''}>${d}</option>`
@@ -747,8 +972,35 @@
             });
         }
 
-        /* ----- Chart & Validation Logic ----- */
+        /* ----- Chart with 24-Hour Outer Dial plugin ----- */
         function initChart() {
+            // Custom Plugin to Draw 24-Hour Dial Numbers around Doughnut Chart
+            const dialPlugin = {
+                id: 'dialPlugin',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { left, top, width, height } } = chart;
+                    const centerX = left + width / 2;
+                    const centerY = top + height / 2;
+                    const outerRadius = chart.getDatasetMeta(0).data[0]?.outerRadius || 90;
+                    const labelRadius = outerRadius + 15;
+
+                    ctx.save();
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    // Draw Numbers 0, 2, 4, ... 22 around dial
+                    for (let h = 0; h < 24; h += 2) {
+                        const angle = (h / 24) * 2 * Math.PI - (Math.PI / 2);
+                        const x = centerX + Math.cos(angle) * labelRadius;
+                        const y = centerY + Math.sin(angle) * labelRadius;
+                        ctx.fillText(`${h}`, x, y);
+                    }
+                    ctx.restore();
+                }
+            };
+
             const ctx = document.getElementById('timeChart').getContext('2d');
             timeChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -761,7 +1013,8 @@
                         legend: { display: false },
                         tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}` } }
                     }
-                }
+                },
+                plugins: [dialPlugin]
             });
         }
 
@@ -804,7 +1057,7 @@
                     label = '⚠️ Overlap Error';
                 } else if (state === 1) {
                     const rec = recordUsage[m];
-                    color = rec.color;
+                    color = DEPT_COLORS[rec.dept] || rec.color;
                     label = `${rec.startTime}~ ${rec.dept}: ${rec.memo || 'Work'}`;
                 }
 
@@ -832,22 +1085,19 @@
             timeChart.update();
         }
 
-        /* ----- Data Submit (Update / Save) ----- */
+        /* ----- Submit to Sheet ----- */
         function submitData() {
-            const gasUrl = document.getElementById('gas-url').value.trim();
+            if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
+                alert("GAS URL is not set. Please update GAS_URL in JavaScript.");
+                return;
+            }
 
             const payload = {
                 date: selectedDateStr,
                 records: records
             };
 
-            if (!gasUrl) {
-                alert("GAS Web App URL is missing. Please configure it in settings below.\n\nPreview Data:\n" + JSON.stringify(payload, null, 2));
-                return;
-            }
-
-            // Send to GAS
-            fetch(gasUrl, {
+            fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
@@ -855,10 +1105,8 @@
             })
             .then(() => {
                 alert('Saved successfully!');
-                // Update local cache
                 monthlyData[selectedDateStr] = records;
-                showCalendarScreen();
-                renderCalendar();
+                backToMainView();
             })
             .catch(err => {
                 alert('Failed to submit: ' + err.message);
