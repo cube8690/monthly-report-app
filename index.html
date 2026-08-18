@@ -517,7 +517,7 @@
 
     <script>
         // ★★★ GASのWeb App URL ★★★
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxZ2Qpc5MW3Hdf4bMYhas7nfDz2zxy9mgjPfK2sm-0a3yAiiGDit7dOCuZoq8lK6bPJqA/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxDCrmdb_0PQDy1L9n-5ewDzv-SEVg83xrucdWIatECYCdqr1GJoMqLHneqeoaj2BeQVg/exec";
 
         // Category / Department Specific Fixed Colors
         const DEPT_COLORS = {
@@ -590,14 +590,15 @@
         }
 
         /* 【改善】GASから返却されたデータを整形・数値化して安全に保持 */
+        /* GASからのデータ読み込み処理の強化 */
         function fetchMonthlyData() {
             if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
                 renderCalendar();
                 renderWeekGrid();
                 return;
             }
-
-            fetch(`${GAS_URL}?year=${currentYear}&month=${currentMonth + 1}`)
+        
+            fetch(GAS_URL)
                 .then(res => res.json())
                 .then(data => {
                     monthlyData = {};
@@ -618,7 +619,7 @@
                     else renderWeekGrid();
                 })
                 .catch(err => {
-                    console.log('Fetching records failed or offline:', err);
+                    console.error('Data fetch error:', err);
                     if (activeView === 'month') renderCalendar();
                     else renderWeekGrid();
                 });
@@ -1110,18 +1111,18 @@
             timeChart.update();
         }
 
-        /* ----- Submit to Sheet ----- */
+        /* データ送信処理（送信後に再取得して同期） */
         function submitData() {
             if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
                 alert("GAS URLが設定されていません。");
                 return;
             }
-
+        
             const payload = {
                 date: selectedDateStr,
                 records: records
             };
-
+        
             fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
@@ -1130,16 +1131,18 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('スプレッドシートに保存しました！');
-                    monthlyData[selectedDateStr] = records;
+                    alert('スプレッドシートに保存・更新しました！');
+                    // ローカルデータを最新にしてメイン画面へ戻る
+                    monthlyData[selectedDateStr] = JSON.parse(JSON.stringify(records));
+                    fetchMonthlyData(); // 最新状態を再取得して画面更新
                     backToMainView();
                 } else {
                     alert('保存エラー: ' + data.message);
                 }
             })
             .catch(err => {
-                alert('送信リクエストを完了しました（データ更新後、再読み込みします）');
-                monthlyData[selectedDateStr] = records;
+                alert('送信処理を実行しました。');
+                monthlyData[selectedDateStr] = JSON.parse(JSON.stringify(records));
                 backToMainView();
             });
         }
