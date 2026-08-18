@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +28,7 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none; /* Prevents text selection during drag */
+            user-select: none;
         }
 
         body {
@@ -202,13 +202,14 @@
             display: inline-block;
         }
 
-        /* Week Time Grid View (Google Calendar Style with Dragging) */
+        /* Week Time Grid View (Google Calendar Style) */
         .week-container {
-            overflow-x: auto;
+            overflow: auto;
             max-height: 600px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             background: #141e2e;
+            position: relative;
         }
 
         .week-table {
@@ -229,18 +230,26 @@
             top: 0;
             background: #1e293b;
             padding: 8px 4px;
-            z-index: 2;
+            z-index: 3;
         }
 
+        /* 【改善】時間列（左端）を左右スクロール時に固定化 */
         .week-time-col {
             width: 60px;
             color: var(--text-muted);
             background: #0f172a !important;
             font-weight: normal;
+            position: sticky;
+            left: 0;
+            z-index: 2;
+        }
+
+        th.week-time-col {
+            z-index: 4; /* ヘッダーかつ固定列の最前面化 */
         }
 
         .week-slot {
-            height: 30px;
+            height: 34px;
             position: relative;
             cursor: pointer;
             vertical-align: top;
@@ -270,6 +279,7 @@
             height: 100%;
             display: flex;
             align-items: center;
+            cursor: pointer;
         }
 
         /* Input Screen Header */
@@ -488,7 +498,7 @@
     <div id="screen-input" class="screen">
         <div class="input-header">
             <button class="btn-nav" onclick="backToMainView()">◀ Back to Calendar</button>
-            <h2 id="selected-date-display">2026-08-14</h2>
+            <h2 id="selected-date-display">2026-08-19</h2>
             <div></div>
         </div>
 
@@ -506,7 +516,7 @@
     </div>
 
     <script>
-        // ★★★ 下記の引用符内をご自身のGASのWeb App URLに変更してください ★★★
+        // ★★★ GASのWeb App URL ★★★
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxZ2Qpc5MW3Hdf4bMYhas7nfDz2zxy9mgjPfK2sm-0a3yAiiGDit7dOCuZoq8lK6bPJqA/exec";
 
         // Category / Department Specific Fixed Colors
@@ -579,6 +589,7 @@
             switchMainView(activeView);
         }
 
+        /* 【改善】GASから返却されたデータを整形・数値化して安全に保持 */
         function fetchMonthlyData() {
             if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
                 renderCalendar();
@@ -586,10 +597,23 @@
                 return;
             }
 
-            fetch(`${GAS_URL}?action=getRecords&year=${currentYear}&month=${currentMonth + 1}`)
+            fetch(`${GAS_URL}?year=${currentYear}&month=${currentMonth + 1}`)
                 .then(res => res.json())
                 .then(data => {
-                    monthlyData = data || {};
+                    monthlyData = {};
+                    if (data && typeof data === 'object') {
+                        Object.keys(data).forEach(dateStr => {
+                            monthlyData[dateStr] = data[dateStr].map((r, idx) => ({
+                                id: Date.now() + Math.random() + idx,
+                                startTime: r.startTime || '09:00',
+                                endTime: r.endTime || '10:00',
+                                duration: parseFloat(r.duration) || 1,
+                                dept: r.dept || 'Real Estate',
+                                memo: r.memo || '',
+                                color: DEPT_COLORS[r.dept] || '#38bdf8'
+                            }));
+                        });
+                    }
                     if (activeView === 'month') renderCalendar();
                     else renderWeekGrid();
                 })
@@ -730,21 +754,26 @@
 
                     const dayRecords = monthlyData[item.dateStr] || [];
 
+                    // 該当時間帯に重なるレコードを抽出
                     const matchingRecord = dayRecords.find(r => {
                         const startH = parseInt(r.startTime.split(':')[0], 10);
-                        return startH === hour;
+                        const dur = parseFloat(r.duration) || 1;
+                        return hour >= startH && hour < (startH + dur);
                     });
 
                     if (matchingRecord) {
-                        const deptColor = DEPT_COLORS[matchingRecord.dept] || '#38bdf8';
-                        td.innerHTML = `
-                            <div class="week-block" style="background:${deptColor};">
-                                ${matchingRecord.startTime} ${matchingRecord.dept}
-                            </div>
-                        `;
+                        const startH = parseInt(matchingRecord.startTime.split(':')[0], 10);
+                        if (hour === startH) {
+                            const deptColor = DEPT_COLORS[matchingRecord.dept] || '#38bdf8';
+                            td.innerHTML = `
+                                <div class="week-block" style="background:${deptColor};" onclick="event.stopPropagation(); selectDate('${item.dateStr}', monthlyData['${item.dateStr}']);">
+                                    ${matchingRecord.startTime} ${matchingRecord.dept}
+                                </div>
+                            `;
+                        }
                     }
 
-                    // Drag Events
+                    // ドラッグ範囲選択イベント
                     td.onmousedown = (e) => startDrag(e, colIdx, hour);
                     td.onmouseenter = (e) => updateDrag(e, colIdx, hour);
 
@@ -756,7 +785,7 @@
         }
 
         function startDrag(e, colIdx, hour) {
-            if (e.button !== 0) return; // Only left click
+            if (e.button !== 0) return;
             isDragging = true;
             dragColIndex = colIdx;
             dragStartHour = hour;
@@ -784,7 +813,6 @@
                 const dateStr = selectedTd.dataset.date;
                 const existingRecords = monthlyData[dateStr] || [];
 
-                // Create new record pre-filled with drag selection
                 selectedDateStr = dateStr;
                 records = existingRecords.length > 0 ? JSON.parse(JSON.stringify(existingRecords)) : [];
 
@@ -820,7 +848,7 @@
             records = [];
             if (existingRecords && existingRecords.length > 0) {
                 records = JSON.parse(JSON.stringify(existingRecords));
-            } else if (records.length === 0) {
+            } else {
                 addRecord('09:00', 1);
             }
 
@@ -846,7 +874,7 @@
             const newRecord = {
                 id: Date.now() + Math.random(),
                 startTime: start,
-                duration: defaultDuration,
+                duration: parseFloat(defaultDuration) || 1,
                 endTime: calculateEndTime(start, defaultDuration),
                 dept: defaultDept,
                 memo: '',
@@ -886,12 +914,11 @@
                 rec.startTime = value;
                 rec.endTime = calculateEndTime(rec.startTime, rec.duration);
             } else if (field === 'duration') {
-                rec.duration = parseInt(value, 10);
+                rec.duration = parseFloat(value) || 1;
                 rec.endTime = calculateEndTime(rec.startTime, rec.duration);
             } else if (field === 'dept') {
                 rec.dept = value;
                 rec.color = DEPT_COLORS[value] || '#38bdf8';
-                // Update card accent border
                 const card = document.getElementById(`record-card-${id}`);
                 if (card) card.style.borderLeftColor = rec.color;
             } else if (field === 'memo') {
@@ -974,7 +1001,6 @@
 
         /* ----- Chart with 24-Hour Outer Dial plugin ----- */
         function initChart() {
-            // Custom Plugin to Draw 24-Hour Dial Numbers around Doughnut Chart
             const dialPlugin = {
                 id: 'dialPlugin',
                 afterDraw(chart) {
@@ -990,7 +1016,6 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    // Draw Numbers 0, 2, 4, ... 22 around dial
                     for (let h = 0; h < 24; h += 2) {
                         const angle = (h / 24) * 2 * Math.PI - (Math.PI / 2);
                         const x = centerX + Math.cos(angle) * labelRadius;
@@ -1087,38 +1112,37 @@
 
         /* ----- Submit to Sheet ----- */
         function submitData() {
-    if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
-        alert("GAS URLが設定されていません。");
-        return;
-    }
+            if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
+                alert("GAS URLが設定されていません。");
+                return;
+            }
 
-    const payload = {
-        date: selectedDateStr,
-        records: records
-    };
+            const payload = {
+                date: selectedDateStr,
+                records: records
+            };
 
-    fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' }, // CORSエラー回避用
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert('スプレッドシートに保存しました！');
-            monthlyData[selectedDateStr] = records;
-            backToMainView();
-        } else {
-            alert('保存エラー: ' + data.message);
+            fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('スプレッドシートに保存しました！');
+                    monthlyData[selectedDateStr] = records;
+                    backToMainView();
+                } else {
+                    alert('保存エラー: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('送信リクエストを完了しました（データ更新後、再読み込みします）');
+                monthlyData[selectedDateStr] = records;
+                backToMainView();
+            });
         }
-    })
-    .catch(err => {
-        // no-cors用フォールバック
-        alert('送信リクエストを完了しました（再読み込みしてご確認ください）');
-        monthlyData[selectedDateStr] = records;
-        backToMainView();
-    });
-}
     </script>
 </body>
 </html>
