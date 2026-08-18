@@ -507,7 +507,7 @@
 
     <script>
         // ★★★ 下記の引用符内をご自身のGASのWeb App URLに変更してください ★★★
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzWkfAM9G4K_lazxfKuCXHe-AlnMGUi7s8eSCvWkzTiZ-A6pQDDzstUOX4uiaF1rbhGyA/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxTXMxPCo-DK_2XklRgSs0pVvMd1stNWpVnIneopz9allazY06Ur3FPZCenxTGh0ZAGjA/exec";
 
         // Category / Department Specific Fixed Colors
         const DEPT_COLORS = {
@@ -1087,31 +1087,38 @@
 
         /* ----- Submit to Sheet ----- */
         function submitData() {
-            if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
-                alert("GAS URL is not set. Please update GAS_URL in JavaScript.");
-                return;
-            }
+    if (!GAS_URL || GAS_URL.includes("YOUR_EXEC_URL")) {
+        alert("GAS URLが設定されていません。");
+        return;
+    }
 
-            const payload = {
-                date: selectedDateStr,
-                records: records
-            };
+    const payload = {
+        date: selectedDateStr,
+        records: records
+    };
 
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                alert('Saved successfully!');
-                monthlyData[selectedDateStr] = records;
-                backToMainView();
-            })
-            .catch(err => {
-                alert('Failed to submit: ' + err.message);
-            });
+    fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' }, // CORSエラー回避用
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('スプレッドシートに保存しました！');
+            monthlyData[selectedDateStr] = records;
+            backToMainView();
+        } else {
+            alert('保存エラー: ' + data.message);
         }
+    })
+    .catch(err => {
+        // no-cors用フォールバック
+        alert('送信リクエストを完了しました（再読み込みしてご確認ください）');
+        monthlyData[selectedDateStr] = records;
+        backToMainView();
+    });
+}
     </script>
 </body>
 </html>
