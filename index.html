@@ -1,147 +1,195 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日報・月報データ入力アプリ</title>
-    <!-- Chart.js for 24h Donut/Pie Chart -->
+    <title>Monthly Work Log App</title>
+    <!-- Chart.js for 24h Donut Chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-main: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary-color: #2b579a;
-            --primary-hover: #1e3d6e;
-            --accent-color: #008080;
-            --border-color: #dddddd;
-            --error-color: #e74c3c;
-            --error-bg: #fde8e8;
+            --bg-main: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary-color: #38bdf8;
+            --primary-hover: #0284c7;
+            --accent-color: #2dd4bf;
+            --border-color: #334155;
+            --error-color: #f87171;
+            --error-bg: #450a0a;
+            --today-border: #38bdf8;
+            --today-bg: rgba(56, 189, 248, 0.15);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Meiryo';
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
             background-color: var(--bg-main);
-            color: var(--text-color);
-            padding: 20px;
+            color: var(--text-main);
+            padding: 15px;
             max-width: 900px;
             margin: 0 auto;
         }
 
         header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid var(--primary-color);
         }
 
         h1 {
             color: var(--primary-color);
-            font-size: 1.8rem;
+            font-size: 1.6rem;
+            letter-spacing: 0.5px;
         }
 
         .screen {
             display: none;
             background: var(--card-bg);
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
         }
 
         .screen.active {
             display: block;
         }
 
-        /* Calendar Screen */
+        /* Calendar Screen Header */
         .calendar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .calendar-header h2 {
-            font-size: 1.4rem;
-            color: var(--primary-color);
+            font-size: 1.3rem;
+            color: var(--text-main);
         }
 
         .btn-nav {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
+            background-color: var(--border-color);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            transition: all 0.2s;
         }
 
         .btn-nav:hover {
             background-color: var(--primary-hover);
+            color: #fff;
         }
 
+        /* Fixed Calendar Grid Layout (Prevents misalignment) */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            text-align: center;
+            gap: 6px;
+            width: 100%;
         }
 
         .day-header {
             font-weight: bold;
-            padding: 10px 0;
-            background: #eef2f7;
+            padding: 8px 0;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 4px;
         }
 
-        .day-header.sun { color: #e74c3c; }
-        .day-header.sat { color: #2980b9; }
+        .day-header.sun { color: #f87171; }
+        .day-header.sat { color: #60a5fa; }
 
         .day-cell {
-            padding: 15px 5px;
+            padding: 8px 4px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
-            min-height: 70px;
+            min-height: 75px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            background: white;
+            background: #182232;
+            position: relative;
         }
 
         .day-cell:hover {
-            background-color: #e8f0fe;
+            background-color: #243348;
             border-color: var(--primary-color);
             transform: translateY(-2px);
         }
 
         .day-cell.empty {
-            background: #f9f9f9;
-            border-color: #eee;
+            background: rgba(255, 255, 255, 0.01);
+            border-color: transparent;
             cursor: default;
         }
 
         .day-cell .day-num {
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            color: var(--text-main);
         }
 
-        .day-cell .day-week {
-            font-size: 0.8rem;
-            color: #666;
+        .day-cell.sun .day-num { color: #f87171; }
+        .day-cell.sat .day-num { color: #60a5fa; }
+
+        /* Today Highlight */
+        .day-cell.today {
+            border: 2px solid var(--today-border);
+            background: var(--today-bg);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
         }
 
-        .day-cell.sun .day-num { color: #e74c3c; }
-        .day-cell.sat .day-num { color: #2980b9; }
+        .day-cell.today .day-num::after {
+            content: 'TODAY';
+            display: block;
+            font-size: 0.55rem;
+            color: var(--primary-color);
+            text-align: center;
+            line-height: 1;
+            margin-top: 2px;
+        }
 
-        /* Input Screen */
+        /* Record Marker in Calendar */
+        .record-badge {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.72rem;
+            color: var(--accent-color);
+            background: rgba(45, 212, 191, 0.1);
+            padding: 2px 5px;
+            border-radius: 10px;
+            margin-top: 4px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .record-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Input Screen Header */
         .input-header {
             display: flex;
             justify-content: space-between;
@@ -153,9 +201,9 @@
 
         .chart-container {
             position: relative;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 25px auto;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px auto;
         }
 
         .overlap-warning {
@@ -163,10 +211,11 @@
             background-color: var(--error-bg);
             color: var(--error-color);
             border: 1px solid var(--error-color);
-            padding: 12px;
+            padding: 10px;
             border-radius: 6px;
             margin-bottom: 20px;
             text-align: center;
+            font-size: 0.9rem;
             font-weight: bold;
         }
 
@@ -174,18 +223,16 @@
         .records-container {
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            margin-bottom: 25px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .record-card {
-            background: #fafafa;
+            background: #0f172a;
             border: 1px solid var(--border-color);
-            border-left: 6px solid #2b579a;
+            border-left: 5px solid var(--primary-color);
             border-radius: 8px;
-            padding: 18px;
-            position: relative;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            padding: 15px;
         }
 
         .record-header {
@@ -197,38 +244,34 @@
 
         .record-title {
             font-weight: bold;
-            color: #555;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 0.95rem;
         }
 
         .color-badge {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             display: inline-block;
         }
 
         .btn-delete {
-            background: #ff4d4d;
+            background: #ef4444;
             color: white;
             border: none;
             padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
-        .btn-delete:hover {
-            background: #cc0000;
-        }
-
-        .time-row {
+        .time-row, .form-row {
             display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
         .field-group {
@@ -237,107 +280,100 @@
 
         .field-group label {
             display: block;
-            font-size: 0.85rem;
-            color: #555;
-            margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
         }
 
         .field-group input[type="text"],
         .field-group select,
         .field-group textarea {
             width: 100%;
-            padding: 8px 12px;
+            padding: 8px 10px;
+            background: #1e293b;
             border: 1px solid var(--border-color);
+            color: var(--text-main);
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .field-group input[readonly] {
-            background-color: #eee;
-            color: #555;
-            cursor: not-allowed;
+            background-color: #090d16;
+            color: var(--text-muted);
         }
 
         .slider-group {
-            margin-bottom: 15px;
-            background: #fff;
-            padding: 10px 12px;
+            margin-bottom: 12px;
+            background: #1e293b;
+            padding: 10px;
             border-radius: 6px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid var(--border-color);
         }
 
         .slider-header {
             display: flex;
             justify-content: space-between;
-            font-size: 0.85rem;
-            color: #555;
-            margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
         }
 
         .slider-group input[type="range"] {
             width: 100%;
+            accent-color: var(--primary-color);
             cursor: pointer;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 10px;
         }
 
         .btn-add-record {
             width: 100%;
             padding: 12px;
-            background-color: #eef2f7;
+            background-color: transparent;
             color: var(--primary-color);
             border: 2px dashed var(--primary-color);
             border-radius: 8px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
+            margin-bottom: 15px;
             transition: background 0.2s;
-            margin-bottom: 25px;
         }
 
         .btn-add-record:hover {
-            background-color: #e0e8f5;
+            background-color: rgba(56, 189, 248, 0.1);
         }
 
         .btn-submit {
             width: 100%;
-            padding: 15px;
-            background-color: #27ae60;
+            padding: 14px;
+            background-color: #10b981;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: background 0.2s;
         }
 
         .btn-submit:hover {
-            background-color: #219150;
+            background-color: #059669;
         }
 
-        /* Settings Modal / Webhook config */
         .gas-config {
             margin-top: 20px;
             padding-top: 15px;
             border-top: 1px solid var(--border-color);
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            color: var(--text-muted);
         }
 
         .gas-config input {
             width: 100%;
-            padding: 6px;
+            padding: 8px;
             margin-top: 5px;
-            font-size: 0.85rem;
-            border: 1px solid #ccc;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
             border-radius: 4px;
         }
     </style>
@@ -345,112 +381,128 @@
 <body>
 
     <header>
-        <h1>業務月報 記録システム</h1>
+        <h1>Monthly Work Log System</h1>
     </header>
 
-    <!-- 画面1: カレンダー選択画面 -->
+    <!-- Screen 1: Calendar View -->
     <div id="screen-calendar" class="screen active">
         <div class="calendar-header">
-            <button class="btn-nav" onclick="changeMonth(-1)">◀ 前月</button>
-            <h2 id="calendar-month-title">2026年 8月</h2>
-            <button class="btn-nav" onclick="changeMonth(1)">次月 ▶</button>
+            <button class="btn-nav" onclick="changeMonth(-1)">◀ Prev</button>
+            <h2 id="calendar-month-title">August 2026</h2>
+            <button class="btn-nav" onclick="changeMonth(1)">Next ▶</button>
         </div>
 
-        <div class="calendar-grid">
-            <div class="day-header sun">日</div>
-            <div class="day-header">月</div>
-            <div class="day-header">火</div>
-            <div class="day-header">水</div>
-            <div class="day-header">木</div>
-            <div class="day-header">金</div>
-            <div class="day-header sat">土</div>
-        </div>
-        <div id="calendar-days" class="calendar-grid" style="margin-top: 8px;"></div>
+        <!-- Single Grid Container for Headers & Day Cells -->
+        <div id="calendar-grid" class="calendar-grid"></div>
     </div>
 
-    <!-- 画面2: 入力エリア画面 -->
+    <!-- Screen 2: Input & Edit View -->
     <div id="screen-input" class="screen">
         <div class="input-header">
-            <button class="btn-nav" onclick="showCalendarScreen()">◀ カレンダーに戻る</button>
-            <h2 id="selected-date-display">2026-08-14 (金) の作業記録</h2>
+            <button class="btn-nav" onclick="showCalendarScreen()">◀ Calendar</button>
+            <h2 id="selected-date-display">2026-08-14</h2>
             <div></div>
         </div>
 
-        <!-- 24時間円グラフ -->
+        <!-- 24h Donut Chart -->
         <div class="chart-container">
             <canvas id="timeChart"></canvas>
         </div>
 
-        <!-- 時間重複エラー警告アラート -->
+        <!-- Time Overlap Alert -->
         <div id="overlap-warning" class="overlap-warning">
-            ⚠️ 警告: 入力された作業時間の間に重複が発生しています！グラフおよび時間枠をご確認ください。
+            ⚠️ Warning: Time slots are overlapping! Please check your records.
         </div>
 
-        <!-- レコード一覧 -->
+        <!-- Record List -->
         <div id="records-container" class="records-container"></div>
 
-        <!-- レコード追加ボタン -->
-        <button class="btn-add-record" onclick="addRecord()">＋ 業務レコードを追加する</button>
+        <!-- Add Button -->
+        <button class="btn-add-record" onclick="addRecord()">+ Add Work Record</button>
 
-        <!-- 送信ボタン -->
-        <button class="btn-submit" onclick="submitData()">スプレッドシートへ送信</button>
+        <!-- Submit Button -->
+        <button class="btn-submit" onclick="submitData()">Save & Submit to Sheet</button>
 
-        <!-- GAS Web App URL設定 -->
+        <!-- Webhook Config -->
         <div class="gas-config">
             <details>
-                <summary>⚙ Webhook / GAS送信先URLの設定</summary>
-                <label style="margin-top:8px; display:block;">GAS Web アプリ URL (exec):</label>
-                <input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/.../exec" value="" onchange="saveGasUrl()">
+                <summary>⚙️ Settings: GAS Web App URL</summary>
+                <label style="margin-top:8px; display:block;">GAS Web App URL (exec):</label>
+                <input type="text" id="gas-url" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveGasUrl()">
             </details>
         </div>
     </div>
 
     <script>
-        // 色パレット（レコード毎のユニークカラー）
         const COLOR_PALETTE = [
-            '#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#9b59b6',
-            '#1abc9c', '#e74c3c', '#34495e', '#d35400', '#8e44ad'
+            '#38bdf8', '#34d399', '#fbbf24', '#f87171', '#c084fc',
+            '#2dd4bf', '#fb923c', '#a78bfa', '#f472b6', '#4ade80'
         ];
-        const OVERLAP_COLOR = '#ff0000'; // 時間重なり時の警告色
+        const OVERLAP_COLOR = '#ef4444';
 
-        // 部門リスト（画像のスプレッドシートに基づきます）
+        // English Department List
         const DEPARTMENTS = [
-            '不動産部門',
-            'GH部門',
-            'Cre部門',
-            '清掃部門',
-            'その他事務作業'
+            'Real Estate',
+            'Group Home',
+            'Creative',
+            'Cleaning',
+            'General Admin'
+        ];
+
+        const MONTH_NAMES = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
         ];
 
         let currentYear = 2026;
-        let currentMonth = 7; // 0-indexed (7 = 8月)
-        let selectedDateStr = ''; // YYYY-MM-DD
-        let selectedDayOfWeek = ''; // 曜日
-
+        let currentMonth = 7; // 0-indexed (7 = August)
+        let selectedDateStr = '';
         let records = [];
         let timeChart = null;
+        let monthlyData = {}; // Cache for existing records from GAS { "2026-08-14": [records] }
 
-        // 初期化
         window.onload = () => {
             const today = new Date();
             currentYear = today.getFullYear();
             currentMonth = today.getMonth();
-            renderCalendar();
             initChart();
 
-            // Saved GAS URL Restore
             const savedUrl = localStorage.getItem('gas_app_url');
             if(savedUrl) {
                 document.getElementById('gas-url').value = savedUrl;
             }
+
+            fetchMonthlyData();
         };
 
         function saveGasUrl() {
-            const url = document.getElementById('gas-url').value;
+            const url = document.getElementById('gas-url').value.trim();
             localStorage.setItem('gas_app_url', url);
+            fetchMonthlyData();
         }
 
-        /* ----- カレンダー描画処理 ----- */
+        /* ----- Fetch Existing Data from GAS (Re-edit Support) ----- */
+        function fetchMonthlyData() {
+            const gasUrl = document.getElementById('gas-url').value.trim();
+            if (!gasUrl) {
+                renderCalendar();
+                return;
+            }
+
+            // Fetch registered data from GAS
+            fetch(`${gasUrl}?action=getRecords&year=${currentYear}&month=${currentMonth + 1}`)
+                .then(res => res.json())
+                .then(data => {
+                    monthlyData = data || {};
+                    renderCalendar();
+                })
+                .catch(err => {
+                    console.log('Fetching existing records failed or offline:', err);
+                    renderCalendar();
+                });
+        }
+
+        /* ----- Calendar Render (Grid Alignment Fixed) ----- */
         function changeMonth(diff) {
             currentMonth += diff;
             if (currentMonth < 0) {
@@ -460,61 +512,96 @@
                 currentMonth = 0;
                 currentYear++;
             }
-            renderCalendar();
+            fetchMonthlyData();
         }
 
         function renderCalendar() {
-            document.getElementById('calendar-month-title').textContent = `${currentYear}年 ${currentMonth + 1}月`;
-            const container = document.getElementById('calendar-days');
-            container.innerHTML = '';
+            document.getElementById('calendar-month-title').textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
 
+            // 1. Render Weekday Headers
+            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            weekdays.forEach((day, idx) => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                if (idx === 0) header.classList.add('sun');
+                if (idx === 6) header.classList.add('sat');
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+
+            // 2. Render Blank & Day Cells
             const firstDay = new Date(currentYear, currentMonth, 1);
             const lastDay = new Date(currentYear, currentMonth + 1, 0);
-
-            const startDayOfWeek = firstDay.getDay(); // 0: Sun
+            const startDayOfWeek = firstDay.getDay();
             const totalDays = lastDay.getDate();
 
-            // 前月の空白セル
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() === currentMonth;
+
+            // Empty cells before month start
             for (let i = 0; i < startDayOfWeek; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'day-cell empty';
-                container.appendChild(emptyCell);
+                grid.appendChild(emptyCell);
             }
 
-            const weekNames = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
-
-            // 今月のセル
+            // Day cells
             for (let day = 1; day <= totalDays; day++) {
                 const cell = document.createElement('div');
-                const dateObj = new Date(currentYear, currentMonth, day);
-                const dayOfWeekIdx = dateObj.getDay();
+                const dayOfWeekIdx = (startDayOfWeek + day - 1) % 7;
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 cell.className = 'day-cell';
                 if (dayOfWeekIdx === 0) cell.classList.add('sun');
                 if (dayOfWeekIdx === 6) cell.classList.add('sat');
 
-                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const weekStr = weekNames[dayOfWeekIdx];
+                // Check Today
+                if (isCurrentMonth && day === today.getDate()) {
+                    cell.classList.add('today');
+                }
+
+                // Check if existing records exist
+                const dayRecords = monthlyData[dateStr] || [];
+                let totalHours = 0;
+                dayRecords.forEach(r => totalHours += Number(r.duration || 0));
+
+                let badgeHtml = '';
+                if (dayRecords.length > 0) {
+                    badgeHtml = `
+                        <div class="record-badge">
+                            <span class="record-dot"></span>
+                            <span>${totalHours}h</span>
+                        </div>
+                    `;
+                }
 
                 cell.innerHTML = `
                     <div class="day-num">${day}</div>
-                    <div class="day-week">${weekStr.replace('曜日','')}</div>
+                    ${badgeHtml}
                 `;
 
-                cell.onclick = () => selectDate(dateStr, weekStr);
-                container.appendChild(cell);
+                cell.onclick = () => selectDate(dateStr, dayRecords);
+                grid.appendChild(cell);
             }
         }
 
-        function selectDate(dateStr, weekStr) {
+        function selectDate(dateStr, existingRecords) {
             selectedDateStr = dateStr;
-            selectedDayOfWeek = weekStr;
+            document.getElementById('selected-date-display').textContent = `Logs for ${selectedDateStr}`;
 
-            document.getElementById('selected-date-display').textContent = `${selectedDateStr} (${selectedDayOfWeek}) の作業記録`;
-            
-            // 入力データの初期化（デフォルトで1件作成）
             records = [];
-            addRecord('09:00', 1);
+            if (existingRecords && existingRecords.length > 0) {
+                // Restore existing records for Editing
+                records = JSON.parse(JSON.stringify(existingRecords));
+            } else {
+                // Initial Default Record
+                addRecord('09:00', 1);
+            }
+
+            renderRecords();
+            updateChartAndValidation();
 
             document.getElementById('screen-calendar').classList.remove('active');
             document.getElementById('screen-input').classList.add('active');
@@ -525,12 +612,11 @@
             document.getElementById('screen-calendar').classList.add('active');
         }
 
-        /* ----- レコード管理 ----- */
+        /* ----- Record Management ----- */
         function addRecord(defaultStart = null, defaultDuration = 1) {
             let start = defaultStart;
             if (!start) {
                 if (records.length > 0) {
-                    // 上部のレコードの終了時間をデフォルト開始時間にする
                     start = records[records.length - 1].endTime;
                 } else {
                     start = '09:00';
@@ -541,7 +627,7 @@
             const newRecord = {
                 id: Date.now() + Math.random(),
                 startTime: start,
-                duration: defaultDuration, // スライダー（時間）
+                duration: defaultDuration,
                 endTime: calculateEndTime(start, defaultDuration),
                 dept: DEPARTMENTS[0],
                 memo: '',
@@ -555,7 +641,7 @@
 
         function deleteRecord(id) {
             if (records.length <= 1) {
-                alert('最低1つのレコードが必要です。');
+                alert('At least one record is required.');
                 return;
             }
             records = records.filter(r => r.id !== id);
@@ -566,17 +652,11 @@
         function calculateEndTime(startStr, durationHours) {
             if (!startStr || !startStr.includes(':')) return '00:00';
             const parts = startStr.split(':');
-            let h = parseInt(parts[0], 10);
-            let m = parseInt(parts[1], 10);
-
-            if (isNaN(h)) h = 0;
-            if (isNaN(m)) m = 0;
+            let h = parseInt(parts[0], 10) || 0;
+            let m = parseInt(parts[1], 10) || 0;
 
             let endH = h + parseInt(durationHours, 10);
-            // 24時間を越える表記対応 (スプレッドシート形式 27:30 などの表現)
-            const formattedH = String(endH).padStart(2, '0');
-            const formattedM = String(m).padStart(2, '0');
-            return `${formattedH}:${formattedM}`;
+            return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
 
         function updateRecordField(id, field, value) {
@@ -595,12 +675,11 @@
                 rec.memo = value;
             }
 
-            // 終了時間表示更新
             const endInput = document.getElementById(`end-time-${id}`);
             if (endInput) endInput.value = rec.endTime;
 
             const durationDisplay = document.getElementById(`duration-val-${id}`);
-            if (durationDisplay) durationDisplay.textContent = `${rec.duration} 時間`;
+            if (durationDisplay) durationDisplay.textContent = `${rec.duration} hr(s)`;
 
             updateChartAndValidation();
         }
@@ -612,7 +691,7 @@
             records.forEach((rec, idx) => {
                 const card = document.createElement('div');
                 card.className = 'record-card';
-                card.style.borderLeftColor = rec.color;
+                card.style.borderLeftColor = rec.color || COLOR_PALETTE[idx % COLOR_PALETTE.length];
 
                 const deptOptions = DEPARTMENTS.map(d => 
                     `<option value="${d}" ${rec.dept === d ? 'selected' : ''}>${d}</option>`
@@ -622,51 +701,45 @@
                     <div class="record-header">
                         <div class="record-title">
                             <span class="color-badge" style="background:${rec.color};"></span>
-                            レコード #${idx + 1}
+                            Record #${idx + 1}
                         </div>
-                        ${records.length > 1 ? `<button class="btn-delete" onclick="deleteRecord(${rec.id})">削除</button>` : ''}
+                        ${records.length > 1 ? `<button class="btn-delete" onclick="deleteRecord(${rec.id})">Delete</button>` : ''}
                     </div>
 
                     <div class="time-row">
-                        <!-- ① 開始時間入力 (手入力限定) -->
                         <div class="field-group">
-                            <label>① 開始時間 (手入力)</label>
+                            <label>① Start Time (Manual)</label>
                             <input type="text" placeholder="09:00" value="${rec.startTime}" 
                                 onchange="updateRecordField(${rec.id}, 'startTime', this.value)">
                         </div>
-
-                        <!-- ② 終了時刻エリア (入力不可/読み取り専用) -->
                         <div class="field-group">
-                            <label>② 終了時刻 (自動計算)</label>
+                            <label>② End Time (Auto)</label>
                             <input type="text" id="end-time-${rec.id}" value="${rec.endTime}" readonly>
                         </div>
                     </div>
 
-                    <!-- ③ スライダー (1～12時間増減) -->
                     <div class="slider-group">
                         <div class="slider-header">
-                            <span>③ 経過時間スライダー (最大12時間)</span>
-                            <span id="duration-val-${rec.id}" style="color:var(--primary-color);">${rec.duration} 時間</span>
+                            <span>③ Duration Slider (Max 12h)</span>
+                            <span id="duration-val-${rec.id}" style="color:var(--primary-color); font-weight:bold;">${rec.duration} hr(s)</span>
                         </div>
                         <input type="range" min="1" max="12" step="1" value="${rec.duration}"
                             oninput="updateRecordField(${rec.id}, 'duration', this.value)">
                     </div>
 
                     <div class="form-row">
-                        <!-- ④ 業務区分ドロップダウン -->
                         <div class="field-group">
-                            <label>④ 業務区分</label>
+                            <label>④ Category / Department</label>
                             <select onchange="updateRecordField(${rec.id}, 'dept', this.value)">
                                 ${deptOptions}
                             </select>
                         </div>
                     </div>
 
-                    <!-- ⑤ 備考欄 -->
-                    <div class="field-group" style="margin-top:10px;">
-                        <label>⑤ 備考 (自由テキスト入力)</label>
-                        <textarea rows="2" placeholder="作業内容のメモなど" 
-                            onchange="updateRecordField(${rec.id}, 'memo', this.value)">${rec.memo}</textarea>
+                    <div class="field-group">
+                        <label>⑤ Notes / Details</label>
+                        <textarea rows="2" placeholder="Tasks completed, notes, etc." 
+                            onchange="updateRecordField(${rec.id}, 'memo', this.value)">${rec.memo || ''}</textarea>
                     </div>
                 `;
 
@@ -674,32 +747,19 @@
             });
         }
 
-        /* ----- 円グラフ & 重なり検出 ----- */
+        /* ----- Chart & Validation Logic ----- */
         function initChart() {
             const ctx = document.getElementById('timeChart').getContext('2d');
             timeChart = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: [],
-                        borderWidth: 1
-                    }]
-                },
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '60%',
+                    cutout: '65%',
                     plugins: {
                         legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ` ${context.label}`;
-                                }
-                            }
-                        }
+                        tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}` } }
                     }
                 }
             });
@@ -712,12 +772,9 @@
         }
 
         function updateChartAndValidation() {
-            // 24時間 (1440分) のタイムスロット配列 (1分刻み)
-            // 0: 空白, 1: 単一使用, 2以上: 重なり
             const minutesInDay = 24 * 60;
             const usage = new Array(minutesInDay).fill(0);
             const recordUsage = new Array(minutesInDay).fill(null);
-
             let hasOverlap = false;
 
             records.forEach(rec => {
@@ -725,100 +782,86 @@
                 const endMin = startMin + (rec.duration * 60);
 
                 for (let m = startMin; m < endMin; m++) {
-                    const normalizedM = m % minutesInDay; // 24時超え用
-                    usage[normalizedM] += 1;
-                    if (usage[normalizedM] > 1) {
-                        hasOverlap = true;
-                    }
-                    recordUsage[normalizedM] = rec;
+                    const normM = m % minutesInDay;
+                    usage[normM] += 1;
+                    if (usage[normM] > 1) hasOverlap = true;
+                    recordUsage[normM] = rec;
                 }
             });
 
-            // 警告表示切り替え
-            const warningEl = document.getElementById('overlap-warning');
-            if (hasOverlap) {
-                warningEl.style.display = 'block';
-            } else {
-                warningEl.style.display = 'none';
-            }
+            document.getElementById('overlap-warning').style.display = hasOverlap ? 'block' : 'none';
 
-            // 円グラフセグメントの構築（連続する同一ステータスをバインド）
-            const chartLabels = [];
-            const chartData = [];
-            const chartColors = [];
-
-            let currentSegment = null;
+            const chartLabels = [], chartData = [], chartColors = [];
+            let currentSeg = null;
 
             for (let m = 0; m < minutesInDay; m++) {
                 const state = usage[m];
-                let color = '#e0e0e0'; // 未割り当て背景
-                let label = '未割り当て';
+                let color = '#334155';
+                let label = 'Empty Slot';
 
                 if (state > 1) {
                     color = OVERLAP_COLOR;
-                    label = '⚠️ 重複エラー';
+                    label = '⚠️ Overlap Error';
                 } else if (state === 1) {
                     const rec = recordUsage[m];
                     color = rec.color;
-                    label = `${rec.startTime}~ ${rec.dept}: ${rec.memo || '作業'}`;
+                    label = `${rec.startTime}~ ${rec.dept}: ${rec.memo || 'Work'}`;
                 }
 
-                if (!currentSegment || currentSegment.color !== color || currentSegment.label !== label) {
-                    if (currentSegment) {
-                        chartLabels.push(currentSegment.label);
-                        chartData.push(currentSegment.count);
-                        chartColors.push(currentSegment.color);
+                if (!currentSeg || currentSeg.color !== color || currentSeg.label !== label) {
+                    if (currentSeg) {
+                        chartLabels.push(currentSeg.label);
+                        chartData.push(currentSeg.count);
+                        chartColors.push(currentSeg.color);
                     }
-                    currentSegment = { label, color, count: 1 };
+                    currentSeg = { label, color, count: 1 };
                 } else {
-                    currentSegment.count++;
+                    currentSeg.count++;
                 }
             }
 
-            if (currentSegment) {
-                chartLabels.push(currentSegment.label);
-                chartData.push(currentSegment.count);
-                chartColors.push(currentSegment.color);
+            if (currentSeg) {
+                chartLabels.push(currentSeg.label);
+                chartData.push(currentSeg.count);
+                chartColors.push(currentSeg.color);
             }
 
-            // グラフ更新
             timeChart.data.labels = chartLabels;
             timeChart.data.datasets[0].data = chartData;
             timeChart.data.datasets[0].backgroundColor = chartColors;
             timeChart.update();
         }
 
-        /* ----- データ送信 (GASスプレッドシート連携) ----- */
+        /* ----- Data Submit (Update / Save) ----- */
         function submitData() {
             const gasUrl = document.getElementById('gas-url').value.trim();
 
-            const payload = records.map(r => ({
-                startDateTime: `${selectedDateStr} ${r.startTime}`,
-                endDateTime: `${selectedDateStr} ${r.endTime}`,
-                dayOfWeek: selectedDayOfWeek,
-                department: r.dept,
-                workHours: `${r.duration}:00`,
-                memo: r.memo
-            }));
+            const payload = {
+                date: selectedDateStr,
+                records: records
+            };
 
             if (!gasUrl) {
-                alert("送信先のGAS URLが設定されていません。\n画面下部の「⚙ Webhook / GAS送信先URLの設定」にURLを入力してください。\n\n【プレビュー表示】以下のデータが送信されます:\n" + JSON.stringify(payload, null, 2));
+                alert("GAS Web App URL is missing. Please configure it in settings below.\n\nPreview Data:\n" + JSON.stringify(payload, null, 2));
                 return;
             }
 
-            // GASへデータ送信 (POST)
+            // Send to GAS
             fetch(gasUrl, {
                 method: 'POST',
-                mode: 'no-cors', // GAS CORS回避
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
             .then(() => {
-                alert('スプレッドシートへの送信リクエストを完了しました！');
+                alert('Saved successfully!');
+                // Update local cache
+                monthlyData[selectedDateStr] = records;
                 showCalendarScreen();
+                renderCalendar();
             })
             .catch(err => {
-                alert('送信エラーが発生しました: ' + err.message);
+                alert('Failed to submit: ' + err.message);
             });
         }
     </script>
